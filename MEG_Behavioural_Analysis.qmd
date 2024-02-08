@@ -1,17 +1,19 @@
 ---
-title: "MEG_Behavioural_Analysis"
-format: html
+title: "MEG Behavioural Analysis"
+subtitle: Behavioural dataset for the lexical decision task performed during MEG recording.
 editor: visual
 author: Swarnendu Moitra
 execute:
   echo: true
   error: false
   warning: false
+  cache: true
+theme: sketchy  
+format:
+  html:
+    code-fold: true
+    code-tools: true
 ---
-
-## Data
-
-Behavioural dataset for the lexical decision task performed during MEG recording.
 
 ```{r}
 library(lme4)
@@ -37,11 +39,9 @@ library(report)
 source('ggplot_theme_Publication-2.R')
 ```
 
-```{r}
-data = read_csv(file = 'MEG_Behavioural_data.csv')
-```
 
 ```{r}
+data = read_csv(file = 'data/MEG_Behavioural_data.csv')
 BAN_data_plot<-data %>%group_by(Cond_Type)%>%summarise(
   MeanResponse=mean(as.numeric(Response))*100,
   SD_Response = sd(as.numeric(Response))*100,
@@ -52,9 +52,7 @@ BAN_data_plot<-data %>%group_by(Cond_Type)%>%summarise(
   MeanACC=mean(ACC)*100,
   SD_ACC = sd(ACC)*100,
   SE_ACC=std.error(ACC)*100)
-```
 
-```{r}
 BAN_data <- data %>% 
   mutate(
     Participant = as.factor(Participant),
@@ -64,10 +62,11 @@ BAN_data <- data %>%
     Cond_Type = as.factor(Cond_Type),
     Response = as.factor(Response)
   )
+str(BAN_data)
 ```
 
 ```{r}
-str(BAN_data)
+
 ```
 
 ```{r}
@@ -105,22 +104,6 @@ summary(BAN_ACC_model_1)
 ```{r}
 coef(summary(BAN_ACC_model_1))
 confint(BAN_ACC_model_1,level = 0.95)
-```
-
-```{r}
-report(BAN_ACC_model_1)
-```
-
-```{r}
-report_statistics(BAN_ACC_model_1)
-```
-
-```{r}
-report(BAN_RT_model_1)
-```
-
-```{r}
-report_statistics(BAN_RT_model_1)
 ```
 
 ```{r}
