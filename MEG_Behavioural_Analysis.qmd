@@ -1,0 +1,217 @@
+---
+title: "MEG_Behavioural_Analysis"
+format: html
+editor: visual
+author: Swarnendu Moitra
+execute:
+  echo: true
+  error: false
+  warning: false
+---
+
+## Data
+
+Behavioural dataset for the lexical decision task performed during MEG recording.
+
+```{r}
+library(lme4)
+library(glmm)
+library(tidyverse)
+library(ggplot2)
+library(trimr)
+require(car)
+require(lattice)
+require(itsadug)
+library(ggpubr)
+library(effects)
+library(sjPlot)
+library(effectsize)
+library(trimr)
+library(taylor)
+library(plotrix)
+library(gridExtra)
+library(ggthemes)
+library(lmerTest)
+library(modelsummary)
+library(report)
+source('ggplot_theme_Publication-2.R')
+```
+
+```{r}
+data = read_csv(file = 'MEG_Behavioural_data.csv')
+```
+
+```{r}
+BAN_data_plot<-data %>%group_by(Cond_Type)%>%summarise(
+  MeanResponse=mean(as.numeric(Response))*100,
+  SD_Response = sd(as.numeric(Response))*100,
+  SE_Response = std.error(as.numeric(Response))*100,
+  MeanRT=mean(RT),
+  SD_RT = sd(RT),
+  SE_RT=std.error(RT),
+  MeanACC=mean(ACC)*100,
+  SD_ACC = sd(ACC)*100,
+  SE_ACC=std.error(ACC)*100)
+```
+
+```{r}
+BAN_data <- data %>% 
+  mutate(
+    Participant = as.factor(Participant),
+    Prefix = as.factor(Prefix),
+    Condition = as.factor(Condition),
+    Item = as.factor(Item.no),
+    Cond_Type = as.factor(Cond_Type),
+    Response = as.factor(Response)
+  )
+```
+
+```{r}
+str(BAN_data)
+```
+
+```{r}
+BAN_RT_model_1 <- lmer(RT ~ Cond_Type + (1|Participant) + (1|Item), data = BAN_data, REML = F)
+BAN_RT_model_2 = lmer(RT ~  (1|Participant) + (1|Item), data = BAN_data, REML = F)
+```
+
+```{r}
+anova(BAN_RT_model_1,BAN_RT_model_2)
+
+```
+
+```{r}
+summary(BAN_RT_model_1)
+```
+
+```{r}
+coef(summary(BAN_RT_model_1))
+confint(BAN_RT_model_1,level = 0.95)
+```
+
+```{r}
+BAN_ACC_model_1 <- glmer(Response ~ Cond_Type + (1|Participant) + (1|Item), data = BAN_data, family = "binomial")
+BAN_ACC_model_2 <- glmer(Response ~ (1|Participant) + (1|Item), data = BAN_data, family = "binomial")
+```
+
+```{r}
+anova(BAN_ACC_model_1,BAN_ACC_model_2)
+```
+
+```{r}
+summary(BAN_ACC_model_1)
+```
+
+```{r}
+coef(summary(BAN_ACC_model_1))
+confint(BAN_ACC_model_1,level = 0.95)
+```
+
+```{r}
+report(BAN_ACC_model_1)
+```
+
+```{r}
+report_statistics(BAN_ACC_model_1)
+```
+
+```{r}
+report(BAN_RT_model_1)
+```
+
+```{r}
+report_statistics(BAN_RT_model_1)
+```
+
+```{r}
+library(papaja)
+apa_lm_RT <- apa_print(BAN_RT_model_1)
+apa_table(
+  apa_lm_RT$table
+  , caption = "RT Table"
+)
+apa_lm_ACC <- apa_print(BAN_ACC_model_1)
+apa_table(
+  apa_lm_ACC$table
+  , caption = "ACC Table"
+)
+```
+
+## Plots
+
+```{r}
+Response_bar<- ggplot(BAN_data_plot,
+               aes(x=Cond_Type,y=MeanResponse,fill=Cond_Type)) +
+  
+  # geom_bar function is used to plot bars of barplot
+  geom_bar(stat = "identity", width = 0.7, position = position_dodge(0.7), show.legend = FALSE  )+
+  #scale_x_discrete(limits = Conditions) +  facet_wrap( ~Prefix) +
+  ylab("% Accept") + 
+  xlab("Conditions") +
+  theme_Publication()+
+  coord_cartesian(ylim = c(0, 100)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05)))+
+  geom_signif(
+    comparisons = list(c("Grammatical", "Pseudowords")),
+    margin_top = 0.12,
+    step_increase = 0.09,
+    tip_length = 0.05,
+    annotation = c("***")
+  )+
+  
+  #geom_errorbar function is used to plot error bars
+  geom_errorbar(aes(ymin=MeanResponse-SE_Response,
+                    ymax=MeanResponse+SE_Response,
+                 width=0.3))
+
+
+RT_bar <- ggplot(BAN_data_plot, aes(x=Cond_Type, y=MeanRT,fill=Cond_Type)) + 
+  geom_bar(stat = "identity", width = 0.7, position = position_dodge(0.7), show.legend = FALSE  )+
+  #scale_x_discrete(limits = Conditions) +  facet_wrap( ~Prefix) +
+  ylab("Reaction Time (in ms)") + 
+  xlab("Conditions") +
+  theme_Publication()+
+  coord_cartesian(ylim = c(0, 1150)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05)))+
+  geom_signif(
+    comparisons = list(c("Grammatical", "Pseudowords")),
+    margin_top = 0.8,
+    step_increase = 0.09,
+    tip_length = 0.5,
+    annotation = c("***")
+  )+
+  
+  #geom_errorbar function is used to plot error bars
+  geom_errorbar(aes(ymin=MeanRT-SE_RT,
+                     ymax=MeanRT+SE_RT,
+                 width=0.3))
+
+# ACC_bar
+# RT_bar
+# grid.arrange(RT + theme_Publication(),arrangeGrob((ACC_p + theme_Publication()),(ACC_c + theme_Publication())),ncol=2)
+Plots_bars <-grid.arrange(RT_bar + theme_Publication(),(Response_bar + theme_Publication()),nrow=1)
+```
+
+```{r}
+RT_violin <- ggplot(data, aes(x=data$Cond_Type, y=RT)) + 
+  geom_violin(aes(fill = Cond_Type), trim = FALSE,show.legend = FALSE) +
+  ylab("Reaction Time (in ms)") + 
+  xlab("Conditions") +
+  
+  geom_signif(
+    comparisons = list(c("Grammatical", "Pseudowords")),
+    margin_top = 0.20,
+    step_increase = 0.05,
+    tip_length = 0.01,
+    map_signif_level = TRUE
+  )+
+  theme_Publication()+
+ 
+  
+  
+  # Add geom_boxplot() to include box plot
+  geom_boxplot(width = 0.2, fill = "white", color = "blue") 
+  
+#RT_violin + stat_summary(fun.data=mean_sdl, mult=1,                geom="pointrange", color="red")
+Plots_vio_bar <-grid.arrange(RT_violin + theme_Publication(),(Response_bar + theme_Publication()),nrow=1)
+```
